@@ -1,11 +1,49 @@
-import { SDK_CSS } from './sdk.js';
+/**
+ * DOMHelpers
+ * 
+ * CSP Nonce Support:
+ * To enable Content Security Policy (CSP) nonce for the Chatwoot widget,
+ * add a script tag with id="csp_nonce" containing the nonce value as JSON:
+ * 
+ * Example:
+ *   <script id="csp_nonce" type="application/json">"YOUR_NONCE_VALUE"</script>
+ * 
+ * The widget will automatically apply this nonce to dynamically injected style tags.
+ */
+
 import { IFrameHelper } from './IFrameHelper';
+import { SDK_CSS } from './sdk.js';
+
+const getJSON = elementID => {
+  const el = document.getElementById(elementID);
+  if (el) {
+    try {
+      return JSON.parse(el.textContent);
+    } catch (error) {
+      console.warn(`Failed to parse JSON from element ${elementID}:`, error);
+      return null;
+    }
+  }
+  return null;
+};
+
+const getCspNonce = () => {
+  const cspNonce = getJSON('csp_nonce');
+  return cspNonce;
+};
 
 export const loadCSS = () => {
   const css = document.createElement('style');
   css.innerHTML = `${SDK_CSS}`;
   css.id = 'cw-widget-styles';
   css.dataset.turboPermanent = true;
+  
+  // Apply CSP nonce if available
+  const nonce = getCspNonce();
+  if (nonce) {
+    css.setAttribute('nonce', nonce);
+  }
+  
   document.body.appendChild(css);
 };
 
