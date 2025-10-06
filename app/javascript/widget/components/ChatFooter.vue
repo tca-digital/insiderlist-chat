@@ -43,7 +43,7 @@ export default {
       return !allowMessagesAfterResolved && status === 'resolved';
     },
     showEmailTranscriptButton() {
-      return this.hasEmail;
+      return false;
     },
     hasEmail() {
       return this.currentUser && this.currentUser.has_email;
