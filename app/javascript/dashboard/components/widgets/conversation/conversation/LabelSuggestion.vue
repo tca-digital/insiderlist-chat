@@ -226,16 +226,6 @@ export default {
         </div>
       </div>
       <div class="sender--info has-tooltip" data-original-title="null">
-        <Avatar
-          v-tooltip.top="{
-            content: $t('LABEL_MGMT.SUGGESTIONS.POWERED_BY'),
-            delay: { show: 600, hide: 0 },
-            hideOnClick: true,
-          }"
-          :size="16"
-          name="chatwoot-ai"
-          icon-name="i-lucide-sparkles"
-        />
       </div>
     </div>
   </li>
