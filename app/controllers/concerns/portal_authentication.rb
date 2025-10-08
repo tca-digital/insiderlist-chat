@@ -106,7 +106,7 @@ module PortalAuthentication
     case user_type
     when 'admin'
       current_portal_slug != 'admin-help'
-    when 'user'
+    when 'standard'
       current_portal_slug != 'user-help'
     else
       false
@@ -119,7 +119,7 @@ module PortalAuthentication
     correct_slug = case user_type
                    when 'admin'
                      'admin-help'
-                   when 'user'
+                   when 'standard'
                      'user-help'
                    else
                      params[:slug] # Stay on current portal if unknown type
