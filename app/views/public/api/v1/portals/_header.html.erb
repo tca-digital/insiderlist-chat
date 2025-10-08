@@ -1,12 +1,16 @@
 <header class="sticky top-0 z-50 w-full bg-white shadow-sm dark:bg-slate-900">
   <nav class="hidden sm:flex max-w-5xl px-4 mx-auto md:px-8" aria-label="Top">
     <div class="flex items-center w-full py-5 overflow-hidden">
-      <% tenant_url = @current_portal_user&.dig('tenant_schema') ? "https://#{@current_portal_user['tenant_schema']}.insiderlist.com" : generate_home_link(@portal.slug, @portal.config['default_locale'] || params[:locale], @theme_from_params, @is_plain_layout_enabled) %>
+      <% 
+        tenant_schema = @current_portal_user&.[]('tenant_schema')
+        tenant_url = if tenant_schema.present?
+                       "https://#{tenant_schema}.insiderlist.com"
+                     else
+                       generate_home_link(@portal.slug, @portal.config['default_locale'] || params[:locale], @theme_from_params, @is_plain_layout_enabled)
+                     end
+      %>
       <a href="<%= tenant_url %>" class="flex items-center min-w-0 h-10">
-        <% if @portal.logo.present? %>
-          <img src="<%= url_for(@portal.logo) %>" class="w-auto h-10 ltr:mr-2 rtl:ml-2" draggable="false" />
-        <% end %>
-        <span class="text-lg font-semibold text-slate-900 truncate dark:text-white <%= @portal.logo.present? ? 'hidden lg:block' : 'hidden sm:block' %>">InsiderList Help</span>
+        <%= image_tag 'logo-green.png', class: 'w-auto h-10 ltr:mr-2 rtl:ml-2', draggable: false, alt: 'InsiderList Help' %>
       </a>
     </div>
 
@@ -100,12 +104,16 @@
 
   <nav class="flex sm:hidden max-w-5xl px-4 mx-auto" aria-label="Mobile Top">
     <div class="flex items-center justify-between w-full py-5">
-      <% tenant_url = @current_portal_user&.dig('tenant_schema') ? "https://#{@current_portal_user['tenant_schema']}.insiderlist.com" : generate_home_link(@portal.slug, @portal.config['default_locale'] || params[:locale], @theme_from_params, @is_plain_layout_enabled) %>
-      <a href="<%= tenant_url %>" class="flex items-center min-w-0 h-10 text-lg font-semibold text-slate-900 dark:text-white">
-        <% if @portal.logo.present? %>
-          <img src="<%= url_for(@portal.logo) %>" class="w-auto h-10 ltr:mr-2 rtl:ml-2" draggable="false" />
-        <% end %>
-         <span class="text-lg font-semibold text-slate-900 truncate dark:text-white <%= @portal.logo.present? ? 'hidden' : 'sm:hidden block' %>">InsiderList Help</span>
+      <% 
+        tenant_schema = @current_portal_user&.[]('tenant_schema')
+        tenant_url = if tenant_schema.present?
+                       "https://#{tenant_schema}.insiderlist.com"
+                     else
+                       generate_home_link(@portal.slug, @portal.config['default_locale'] || params[:locale], @theme_from_params, @is_plain_layout_enabled)
+                     end
+      %>
+      <a href="<%= tenant_url %>" class="flex items-center min-w-0 h-10">
+        <%= image_tag 'logo-green.png', class: 'w-auto h-10', draggable: false, alt: 'InsiderList Help' %>
       </a>
 
       <!-- Mobile Menu Component -->
