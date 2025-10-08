@@ -21,9 +21,6 @@ module PortalAuthentication
 
   def valid_portal_session?
     token = extract_portal_token
-    
-    Rails.logger.info "[PortalAuth] Token extracted: #{token.present? ? 'YES' : 'NO'}"
-    
     return false if token.blank?
 
     verify_portal_token(token)
@@ -38,10 +35,6 @@ module PortalAuthentication
 
   def verify_portal_token(token)
     jwt_secret = ENV.fetch('CHATWOOT_JWT_SECRET', nil)
-    
-    Rails.logger.info "[PortalAuth] Verifying token: #{token[0..20]}..."
-    Rails.logger.info "[PortalAuth] Secret present: #{jwt_secret.present?}"
-    
     return false if jwt_secret.blank?
 
     decoded = JWT.decode(
@@ -51,14 +44,9 @@ module PortalAuthentication
       { algorithm: 'HS256', verify_expiration: true }
     )
     
-    Rails.logger.info "[PortalAuth] Token verified successfully: #{decoded[0].inspect}"
     @current_portal_user = decoded[0]
     true
-  rescue JWT::DecodeError => e
-    Rails.logger.error "[PortalAuth] JWT Decode Error: #{e.message}"
-    false
-  rescue JWT::ExpiredSignature => e
-    Rails.logger.error "[PortalAuth] JWT Expired: #{e.message}"
+  rescue JWT::DecodeError, JWT::ExpiredSignature
     false
   end
 
