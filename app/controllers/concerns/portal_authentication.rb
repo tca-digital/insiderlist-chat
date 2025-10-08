@@ -20,11 +20,16 @@ module PortalAuthentication
   end
 
   def valid_portal_session?
-    # Check for valid JWT token in cookie or header
     token = extract_portal_token
     return false if token.blank?
 
-    verify_portal_token(token)
+    if verify_portal_token(token)
+      true
+    else
+      # Even if token is expired, store tenant info for redirect
+      store_tenant_from_expired_token(token)
+      false
+    end
   end
 
   def extract_portal_token
@@ -55,25 +60,50 @@ module PortalAuthentication
     
     if login_path.present?
       login_url = build_login_url(login_path)
-      redirect_to "#{login_url}?next=#{CGI.escape(request.fullpath)}"
-    else
-      render 'public/api/v1/portals/error/401', status: :unauthorized, layout: 'portal'
+      if login_url.present?
+        redirect_to "#{login_url}?next=#{CGI.escape(request.fullpath)}"
+        return
+      end
     end
+    
+    # Show error if we can't determine where to redirect
+    render 'public/api/v1/portals/error/401', status: :unauthorized, layout: 'portal'
   end
 
   def build_login_url(login_path)
     # If it's already a full URL, use it as-is
     return login_path if login_path.start_with?('http://', 'https://')
     
-    # For relative paths, use the referrer's domain
-    referrer = request.referrer
-    if referrer.present?
-      uri = URI.parse(referrer)
-      "#{uri.scheme}://#{uri.host}#{':' + uri.port.to_s if uri.port && ![80, 443].include?(uri.port)}#{login_path}"
+    # Try to get tenant domain from stored session or referrer
+    base_url = session[:portal_tenant_domain] || extract_domain_from_referrer
+    
+    if base_url.present?
+      "#{base_url.chomp('/')}#{login_path}"
     else
-      # Fallback to relative path
-      login_path
+      # Fallback: show error instead of breaking
+      nil
     end
+  end
+
+  def extract_domain_from_referrer
+    return nil unless request.referrer.present?
+    
+    uri = URI.parse(request.referrer)
+    "#{uri.scheme}://#{uri.host}#{':' + uri.port.to_s if uri.port && ![80, 443].include?(uri.port)}"
+  rescue URI::InvalidURIError
+    nil
+  end
+
+  def store_tenant_from_expired_token(token)
+    jwt_secret = ENV.fetch('PORTAL_JWT_SECRET', nil)
+    return if jwt_secret.blank?
+
+    # Decode without verification to get tenant info
+    decoded = JWT.decode(token, nil, false)
+    tenant_domain = decoded[0]['tenant_domain']
+    session[:portal_tenant_domain] = tenant_domain if tenant_domain.present?
+  rescue StandardError
+    nil
   end
 end
 
