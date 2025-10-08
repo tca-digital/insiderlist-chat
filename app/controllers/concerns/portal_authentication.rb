@@ -14,6 +14,7 @@ module PortalAuthentication
   end
 
   def authenticate_portal_access!
+    return redirect_to_correct_portal if valid_portal_session? && wrong_portal?
     return if valid_portal_session?
 
     redirect_to_login
@@ -93,6 +94,38 @@ module PortalAuthentication
     @is_plain_layout_enabled = params[:show_plain_layout] == 'true'
     @theme_from_params = params[:theme] if %w[dark light].include?(params[:theme])
     true
+  end
+
+  def wrong_portal?
+    user_type = @current_portal_user&.dig('user_type')
+    current_portal_slug = params[:slug]
+    
+    return false if user_type.blank? || current_portal_slug.blank?
+    
+    # Map user types to their allowed portal
+    case user_type
+    when 'admin'
+      current_portal_slug != 'admin-help'
+    when 'user'
+      current_portal_slug != 'user-help'
+    else
+      false
+    end
+  end
+
+  def redirect_to_correct_portal
+    user_type = @current_portal_user&.dig('user_type')
+    
+    correct_slug = case user_type
+                   when 'admin'
+                     'admin-help'
+                   when 'user'
+                     'user-help'
+                   else
+                     params[:slug] # Stay on current portal if unknown type
+                   end
+    
+    redirect_to "/hc/#{correct_slug}/#{params[:locale] || 'en'}"
   end
 end
 
