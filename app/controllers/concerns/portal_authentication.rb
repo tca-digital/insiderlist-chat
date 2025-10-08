@@ -23,13 +23,7 @@ module PortalAuthentication
     token = extract_portal_token
     return false if token.blank?
 
-    if verify_portal_token(token)
-      true
-    else
-      # Even if token is expired, store tenant info for redirect
-      store_tenant_from_expired_token(token)
-      false
-    end
+    verify_portal_token(token)
   end
 
   def extract_portal_token
@@ -56,54 +50,48 @@ module PortalAuthentication
   end
 
   def redirect_to_login
-    login_path = ENV.fetch('PORTAL_LOGIN_URL', nil)
-    
-    if login_path.present?
-      login_url = build_login_url(login_path)
-      if login_url.present?
-        redirect_to "#{login_url}?next=#{CGI.escape(request.fullpath)}"
-        return
-      end
-    end
-    
-    # Show error if we can't determine where to redirect
-    render 'public/api/v1/portals/error/401', status: :unauthorized, layout: 'portal'
-  end
-
-  def build_login_url(login_path)
-    # If it's already a full URL, use it as-is
-    return login_path if login_path.start_with?('http://', 'https://')
-    
-    # Try to get tenant domain from stored session or referrer
-    base_url = session[:portal_tenant_domain] || extract_domain_from_referrer
-    
-    if base_url.present?
-      "#{base_url.chomp('/')}#{login_path}"
+    # Show error page - users must access from their tenant subdomain
+    if set_portal_for_error
+      render 'public/api/v1/portals/error/401', status: :unauthorized, layout: 'portal'
     else
-      # Fallback: show error instead of breaking
-      nil
+      render inline: simple_401_html, status: :unauthorized
     end
   end
 
-  def extract_domain_from_referrer
-    return nil unless request.referrer.present?
-    
-    uri = URI.parse(request.referrer)
-    "#{uri.scheme}://#{uri.host}#{':' + uri.port.to_s if uri.port && ![80, 443].include?(uri.port)}"
-  rescue URI::InvalidURIError
-    nil
+  def simple_401_html
+    <<~HTML
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Authentication Required</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+          body { font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f9fafb; }
+          .container { text-align: center; padding: 2rem; }
+          .emoji { font-size: 4rem; margin-bottom: 1rem; }
+          h1 { font-size: 2rem; color: #1f2937; margin: 0 0 0.5rem; }
+          p { color: #6b7280; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="emoji">🔒</div>
+          <h1>Authentication Required</h1>
+          <p>Please access the help center from your account.</p>
+        </div>
+      </body>
+      </html>
+    HTML
   end
 
-  def store_tenant_from_expired_token(token)
-    jwt_secret = ENV.fetch('PORTAL_JWT_SECRET', nil)
-    return if jwt_secret.blank?
-
-    # Decode without verification to get tenant info
-    decoded = JWT.decode(token, nil, false)
-    tenant_domain = decoded[0]['tenant_domain']
-    session[:portal_tenant_domain] = tenant_domain if tenant_domain.present?
-  rescue StandardError
-    nil
+  def set_portal_for_error
+    @portal = Portal.find_by(slug: params[:slug], archived: false) if params[:slug].present?
+    return false if @portal.nil?
+    
+    @locale = params[:locale] || @portal.default_locale
+    @is_plain_layout_enabled = params[:show_plain_layout] == 'true'
+    @theme_from_params = params[:theme] if %w[dark light].include?(params[:theme])
+    true
   end
 end
 
