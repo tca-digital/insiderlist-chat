@@ -10,7 +10,7 @@ module PortalAuthentication
   private
 
   def portal_requires_authentication?
-    ENV['PORTAL_JWT_SECRET'].present?
+    ENV['CHATWOOT_JWT_SECRET'].present?
   end
 
   def authenticate_portal_access!
@@ -33,7 +33,7 @@ module PortalAuthentication
   end
 
   def verify_portal_token(token)
-    jwt_secret = ENV.fetch('PORTAL_JWT_SECRET', nil)
+    jwt_secret = ENV.fetch('CHATWOOT_JWT_SECRET', nil)
     return false if jwt_secret.blank?
 
     decoded = JWT.decode(
